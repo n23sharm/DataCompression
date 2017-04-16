@@ -22,6 +22,10 @@ public class Node {
         return character;
     }
 
+    public int getIndex() {
+        return index;
+    }
+
     public int getDepth() {
         return depth;
     }

@@ -1,8 +1,12 @@
 import com.sun.istack.internal.Nullable;
 
+import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class BinaryFileCompressor {
 
@@ -20,17 +24,13 @@ public class BinaryFileCompressor {
             return;
         }
 
-        Trie trie = new Trie();
-        for (int i = 0; i < data.length; ++i) {
-            char c = (char) data[i];
-            trie.insert(c, i);
-        }
-
-        //trie.printTrie();
+        System.out.print("Data size = " + data.length);
 
         Compressor compressor = new Compressor();
-        char[] compressed = compressor.getCompressed(data);
-        System.out.print(compressed);
+        List<Byte> compressed = compressor.getCompressed(data);
+        binaryFileCompressor.outputCompressedBinaryFile(compressed);
+
+        System.out.print("Compressed size = " + compressed.size());
 
     }
 
@@ -43,5 +43,19 @@ public class BinaryFileCompressor {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private void outputCompressedBinaryFile(List<Byte> compressedData) {
+        DataOutputStream os = null;
+        try {
+            os = new DataOutputStream(new FileOutputStream("./compressed.bin"));
+            for (Byte data : compressedData) {
+                os.write(data);
+            }
+            os.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

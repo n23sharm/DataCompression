@@ -1,9 +1,9 @@
 import com.sun.istack.internal.NotNull;
 import com.sun.istack.internal.Nullable;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.BitSet;
 import java.util.List;
 
 public class Compressor {
@@ -11,14 +11,34 @@ public class Compressor {
     @NotNull
     private Trie trie;
 
-    private char[] compressed;
-
     public Compressor() {
         trie = new Trie();
     }
 
-    public char[] getCompressed(@NotNull byte[] data) {
-        compressed = new char[data.length];
+    public List<Byte> getCompressed(@NotNull byte[] data) {
+        List<Byte> compressed = new ArrayList<>();
+        List<CompressedFormat> compressedFormattedData = getCompressedFormattedData(data);
+
+        for (CompressedFormat compressedFormat : compressedFormattedData) {
+            if (compressedFormat.getCopy() != null)  {
+                Copy copy = compressedFormat.getCopy();
+
+                compressed.add(Byte.valueOf("1"));
+                compressed.add((byte) copy.getOffset());
+                compressed.add((byte) copy.getLength());
+
+            } else {
+                compressed.add(Byte.valueOf("0"));
+                compressed.add((byte) compressedFormat.getCharacter());
+            }
+        }
+
+        return compressed;
+    }
+
+    public List<CompressedFormat> getCompressedFormattedData(@NotNull byte[] data) {
+        char[] compressed = new char[data.length];
+        List<CompressedFormat> compressedBinary = new ArrayList<CompressedFormat>();
 
         int index = 0;
         while(index < data.length) {
@@ -28,57 +48,65 @@ public class Compressor {
 
             if (existing.isEmpty()) {
                 compressed[index] = c;
+                compressedBinary.add(new CompressedFormat(c));
                 trie.insert(c, index);
                 index++;
 
             } else {
-                int maxDepth = getMaxDepth(existing, index, data);
+                //Node maxDepthNode = getMaxDepthMatchingNode(existing, index, data);
+                Copy nodeCopy = getNodeCopy(existing, index, data);
 
-                if (maxDepth > 0) {
-                    for (int i = index; i < index + maxDepth; ++i) {
+                if (nodeCopy != null && nodeCopy.getLength() > 0) {
+                    for (int i = index; i < index + nodeCopy.getLength(); ++i) {
                         char cachedChar = (char) data[i];
                         compressed[i] = Character.toUpperCase(cachedChar);
+
                         trie.insert(cachedChar, i);
                     }
-                    index = index + maxDepth;
+                    compressedBinary.add(new CompressedFormat(nodeCopy));
+                    index = index + nodeCopy.getLength();
                 } else {
                     compressed[index] = c;
+                    compressedBinary.add(new CompressedFormat(c));
                     trie.insert(c, index);
                     index++;
                 }
             }
         }
 
-        //trie.printTrie();
-        return compressed;
+        System.out.println(compressedBinary);
+        return compressedBinary;
     }
 
-    private int getMaxDepth(List<Node> existing, int index, byte[] data) {
-
+    @Nullable
+    private Copy getNodeCopy(List<Node> existing, int index, byte[] data) {
         if (index >= data.length) {
-            return 0;
+            return null;
         }
 
         Node overallMaxDepthMatchingNode = existing.get(0);
+        Node overallMaxDepthHead = existing.get(0);
 
         for (Node node : existing) {
-
-            Node maxDepthMatchingNode = getMaxDepthMatchingNode(data, index, node);
+            Node maxDepthMatchingNode = getFurthestMatchingNode(data, index, node);
 
             if (maxDepthMatchingNode.getDepth() > overallMaxDepthMatchingNode.getDepth()) {
                 overallMaxDepthMatchingNode = maxDepthMatchingNode;
+                overallMaxDepthHead = node;
             }
         }
 
         // Only replace seen characters of length 3 or greater
         if (overallMaxDepthMatchingNode.getDepth() < 3) {
-            return 0;
+            return null;
         }
 
-        return overallMaxDepthMatchingNode.getDepth();
+        int offset = overallMaxDepthHead.getIndex() - index + 1;
+        int length = overallMaxDepthMatchingNode.getDepth() - 1;
+        return new Copy(offset, length);
     }
 
-    private Node getMaxDepthMatchingNode(byte[] data, int matchingIndex, Node node) {
+    private Node getFurthestMatchingNode(byte[] data, int matchingIndex, Node node) {
         char match = (char) data[matchingIndex];
         Node childNode = node;
         Node maxDepthMatchingNode = node;

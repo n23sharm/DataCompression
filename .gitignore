@@ -1,1 +1,4 @@
 *.class
+vcs.xml
+workspace.xml
+encodings.xml
