@@ -4,6 +4,16 @@ import com.sun.istack.internal.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Compression is done with the following encoding:
+ *
+ * - 0 bit followed by 8 bits represents a single byte (9 bits total).
+ * - 1 bit followed by 16 bits that store how many bytes ago we should start copying
+ *   from, followed by 6 bits that store the number of bytes to copy (23 bits total)
+ *
+ *   Note since minimum cache length is 3, 6 bits represent lengths from 3-66 instead of 0-63
+ *   via LENGTH_OFFSET.
+ */
 public class Compressor {
 
     public static int LENGTH_OFFSET = 3;
@@ -12,8 +22,12 @@ public class Compressor {
     @NotNull
     private Cache cache;
 
+    @NotNull
+    private BinaryUtils binaryUtils;
+
     public Compressor() {
         cache = new Cache();
+        binaryUtils = new BinaryUtils();
     }
 
     @NotNull
@@ -29,13 +43,13 @@ public class Compressor {
 
                 if (offsetBinary.length() < 16) {
                     int paddingLength = 16 - offsetBinary.length();
-                    offsetBinary = getZeroPadding(paddingLength) + offsetBinary;
+                    offsetBinary = binaryUtils.getZeroPadding(paddingLength) + offsetBinary;
                 }
 
                 String lengthBinary = Integer.toBinaryString(copy.getLength() - LENGTH_OFFSET);
                 if (lengthBinary.length() < 6) {
                     int paddingLength = 6 - lengthBinary.length();
-                    lengthBinary = getZeroPadding(paddingLength) + lengthBinary;
+                    lengthBinary = binaryUtils.getZeroPadding(paddingLength) + lengthBinary;
                 }
 
                 binarySB.append("1").append(offsetBinary).append(lengthBinary);
@@ -44,7 +58,7 @@ public class Compressor {
                 String charBinary = Integer.toBinaryString(compressedFormat.getCharacter());
                 if (charBinary.length() < 8) {
                     int paddingLength = 8 - charBinary.length();
-                    charBinary = getZeroPadding(paddingLength) + charBinary;
+                    charBinary = binaryUtils.getZeroPadding(paddingLength) + charBinary;
                 }
                 binarySB.append("0").append(charBinary);
             }
@@ -53,14 +67,6 @@ public class Compressor {
        return binarySB.toString();
     }
 
-    @NotNull
-    private String getZeroPadding(int paddingLength) {
-        StringBuilder zeroBuilder = new StringBuilder(paddingLength);
-        for (int i = 0; i < paddingLength; i++) {
-            zeroBuilder.append("0");
-        }
-        return zeroBuilder.toString();
-    }
 
     @NotNull
     private List<CompressedFormat> getCompressedFormattedData(@NotNull byte[] data) {

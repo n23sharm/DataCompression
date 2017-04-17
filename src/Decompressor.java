@@ -1,9 +1,19 @@
 import com.sun.istack.internal.NotNull;
 
+/**
+ * Decompressor for files encoded with the compression from {@link Compressor}
+ */
 public class Decompressor {
 
     @NotNull
-    public String getDecompressedData(byte[] data, int totalLength) {
+    private BinaryUtils binaryUtils;
+
+    public Decompressor() {
+        binaryUtils = new BinaryUtils();
+    }
+
+    @NotNull
+    public String getDecompressedData(@NotNull byte[] data, int totalLength) {
         StringBuilder decompressedBuilder = new StringBuilder();
         for (int i = 0; i < data.length; ++i) {
             String binary = String.format("%8s", Integer.toBinaryString(data[i] & 0xFF)).replace(" ", "");
@@ -12,26 +22,17 @@ public class Decompressor {
             if (i == data.length - 1) {
                 int remainingLength = totalLength - decompressedBuilder.length();
                 if (remainingLength > binary.length()) {
-                    binary = getZeroPadding(remainingLength - binary.length()) + binary;
+                    binary = binaryUtils.getZeroPadding(remainingLength - binary.length()) + binary;
                 }
             } else if (binary.length() < 8) {
                 // Pad all binary numbers with 0 to ensure a length of size 8,
-                binary = getZeroPadding(8 - binary.length()) + binary;
+                binary = binaryUtils.getZeroPadding(8 - binary.length()) + binary;
             }
             decompressedBuilder.append(binary);
         }
 
         String parsed = parseBinaryString(decompressedBuilder.toString());
         return parsed;
-    }
-
-    @NotNull
-    private String getZeroPadding(int paddingLength) {
-        StringBuilder zeroBuilder = new StringBuilder(paddingLength);
-        for (int i = 0; i < paddingLength; i++) {
-            zeroBuilder.append("0");
-        }
-        return zeroBuilder.toString();
     }
 
     @NotNull
