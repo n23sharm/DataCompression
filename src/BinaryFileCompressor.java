@@ -11,7 +11,6 @@ public class BinaryFileCompressor {
 
         BinaryFileCompressor binaryFileCompressor = new BinaryFileCompressor();
 
-
         System.out.println("~~~~~~~~~~~~~ Compressing Input 1 ~~~~~~~~~~~~~~");
         String inputFile1 = "./input1.bin";
         String compressedFile1 = "./compressed1.bin";
@@ -53,7 +52,6 @@ public class BinaryFileCompressor {
         System.out.println("~~~~~~~~~~~~~~~~~~~~~ Done  ~~~~~~~~~~~~~~~~~~~~");
         System.out.println();
         System.out.println();
-
     }
 
     /**
@@ -63,11 +61,10 @@ public class BinaryFileCompressor {
     public int compress(@NotNull String inputFilename, @NotNull String compressedFilename) {
         Compressor compressor = new Compressor();
         byte[] dataToCompress = getFileData(inputFilename);
-        if (dataToCompress == null) {
+        if (dataToCompress == null || dataToCompress.length <= 0) {
             return 0;
         }
         String compressedBinary = compressor.getCompressedData(dataToCompress);
-        //System.out.println("Compressed = " + compressedBinary);
         outputCompressedBinaryFile(compressedBinary, compressedFilename);
         return compressedBinary.length();
     }
