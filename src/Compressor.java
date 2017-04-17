@@ -132,6 +132,9 @@ public class Compressor {
         }
     }
 
+    /**
+     * Returns the data in a list of CompressedFormat which either holds a char or an offset and length
+     */
     @NotNull
     private List<CompressedFormat> getCompressedFormattedData(@NotNull byte[] data) {
         List<CompressedFormat> compressedFormat = new ArrayList<>();
@@ -148,7 +151,7 @@ public class Compressor {
                 index++;
 
             } else {
-                Placement nodePlacement = getNodePlacementForMaxSequence(existingNodes, index, data);
+                Placement nodePlacement = getPlacementForMaxSequence(existingNodes, index, data);
 
                 if (nodePlacement != null && nodePlacement.getLength() > 0 && nodePlacement.getOffset() < Cache.MAX_OFFSET) {
                     for (int i = index; i < index + nodePlacement.getLength(); ++i) {
@@ -170,7 +173,7 @@ public class Compressor {
     }
 
     @Nullable
-    private Placement getNodePlacementForMaxSequence(List<Node> existing, int index, byte[] data) {
+    private Placement getPlacementForMaxSequence(List<Node> existing, int index, byte[] data) {
         if (index >= data.length) {
             return null;
         }
