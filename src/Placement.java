@@ -1,10 +1,10 @@
 
-public class Copy {
+public class Placement {
 
     private int offset;
     private int length;
 
-    public Copy(int offset, int length) {
+    public Placement(int offset, int length) {
         this.offset = offset;
         this.length = length;
     }

@@ -4,7 +4,14 @@ import java.util.ArrayList;
 
 public class Cache {
 
+    // We can only search for characters that are a max of 65535 bytes away since this is represented with 16 bits
     public static int MAX_OFFSET = 65535;
+
+    // We are representing 3-66 with 6 bits. This offset maps the given value with actual length.
+    public static int LENGTH_OFFSET = 3;
+
+    // The maximum length a cached sequence is allowed
+    public static int MAX_SEQUENCE_LENGTH = 66;
 
     @NotNull
     private ArrayList<Node> cache;

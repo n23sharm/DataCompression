@@ -6,16 +6,16 @@ public class CompressedFormat {
     private char character;
 
     @Nullable
-    private Copy copy;
+    private Placement placement;
 
     public CompressedFormat(char character) {
         this.character = character;
-        this.copy = null;
+        this.placement = null;
     }
 
-    public CompressedFormat(@NotNull Copy copy) {
+    public CompressedFormat(@NotNull Placement placement) {
         this.character = 0;
-        this.copy = copy;
+        this.placement = placement;
     }
 
     public char getCharacter() {
@@ -23,14 +23,14 @@ public class CompressedFormat {
     }
 
     @Nullable
-    public Copy getCopy() {
-        return copy;
+    public Placement getPlacement() {
+        return placement;
     }
 
     @Override
     public String toString() {
-        if (copy != null) {
-            return "(" + copy.getOffset() + "," + copy.getLength() + ")";
+        if (placement != null) {
+            return "(" + placement.getOffset() + "," + placement.getLength() + ")";
         }
         return String.valueOf(character);
     }

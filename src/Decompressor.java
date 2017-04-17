@@ -66,7 +66,7 @@ public class Decompressor {
                     String binaryLength = binary.substring(index + 17, endLengthIndex);
 
                     int offset = Integer.parseInt(binaryOffset, 2);
-                    int length = Integer.parseInt(binaryLength, 2) + Compressor.LENGTH_OFFSET;
+                    int length = Integer.parseInt(binaryLength, 2) + Cache.LENGTH_OFFSET;
 
                     String sbSoFar = sb.toString();
                     int startIndex = sb.length() - offset;

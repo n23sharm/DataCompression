@@ -16,9 +16,6 @@ import java.util.List;
  */
 public class Compressor {
 
-    public static int LENGTH_OFFSET = 3;
-    public static int MAX_LENGTH_OFFSET = 63;
-
     @NotNull
     private Cache cache;
 
@@ -36,17 +33,17 @@ public class Compressor {
         List<CompressedFormat> compressedFormattedData = getCompressedFormattedData(data);
 
         for (CompressedFormat compressedFormat : compressedFormattedData) {
-            if (compressedFormat.getCopy() != null)  {
-                Copy copy = compressedFormat.getCopy();
+            if (compressedFormat.getPlacement() != null)  {
+                Placement placement = compressedFormat.getPlacement();
 
-                String offsetBinary = Integer.toBinaryString(copy.getOffset());
+                String offsetBinary = Integer.toBinaryString(placement.getOffset());
 
                 if (offsetBinary.length() < 16) {
                     int paddingLength = 16 - offsetBinary.length();
                     offsetBinary = binaryUtils.getZeroPadding(paddingLength) + offsetBinary;
                 }
 
-                String lengthBinary = Integer.toBinaryString(copy.getLength() - LENGTH_OFFSET);
+                String lengthBinary = Integer.toBinaryString(placement.getLength() - Cache.LENGTH_OFFSET);
                 if (lengthBinary.length() < 6) {
                     int paddingLength = 6 - lengthBinary.length();
                     lengthBinary = binaryUtils.getZeroPadding(paddingLength) + lengthBinary;
@@ -67,33 +64,32 @@ public class Compressor {
        return binarySB.toString();
     }
 
-
     @NotNull
     private List<CompressedFormat> getCompressedFormattedData(@NotNull byte[] data) {
-        List<CompressedFormat> compressedFormat = new ArrayList<CompressedFormat>();
+        List<CompressedFormat> compressedFormat = new ArrayList<>();
 
         int index = 0;
         while(index < data.length) {
             char c = (char) data[index];
 
-            List<Node> existing = cache.getMatchingNodes(c);
+            List<Node> existingNodes = cache.getMatchingNodes(c);
 
-            if (existing.isEmpty()) {
+            if (existingNodes.isEmpty()) {
                 compressedFormat.add(new CompressedFormat(c));
                 cache.insert(c, index);
                 index++;
 
             } else {
-                Copy nodeCopy = getNodeCopy(existing, index, data);
+                Placement nodePlacement = getNodePlacementForMaxSequence(existingNodes, index, data);
 
-                if (nodeCopy != null && nodeCopy.getLength() > 0 && nodeCopy.getOffset() < Cache.MAX_OFFSET) {
-                    for (int i = index; i < index + nodeCopy.getLength(); ++i) {
+                if (nodePlacement != null && nodePlacement.getLength() > 0 && nodePlacement.getOffset() < Cache.MAX_OFFSET) {
+                    for (int i = index; i < index + nodePlacement.getLength(); ++i) {
                         char cachedChar = (char) data[i];
                         cache.insert(cachedChar, i);
                     }
 
-                    compressedFormat.add(new CompressedFormat(nodeCopy));
-                    index = index + nodeCopy.getLength();
+                    compressedFormat.add(new CompressedFormat(nodePlacement));
+                    index = index + nodePlacement.getLength();
                 } else {
                     compressedFormat.add(new CompressedFormat(c));
                     cache.insert(c, index);
@@ -106,20 +102,20 @@ public class Compressor {
     }
 
     @Nullable
-    private Copy getNodeCopy(List<Node> existing, int index, byte[] data) {
+    private Placement getNodePlacementForMaxSequence(List<Node> existing, int index, byte[] data) {
         if (index >= data.length) {
             return null;
         }
 
         int overallMaxSequenceLength = 0;
-        Node overallMaxDepthHead = existing.get(0);
+        Node overallMaxSequenceNodeHead = existing.get(0);
 
         for (Node node : existing) {
             Node maxDepthMatchingNode = getFurthestMatchingNode(data, index, node);
 
             int sequenceLength = maxDepthMatchingNode.getDepth() - node.getDepth();
-            if (sequenceLength > overallMaxSequenceLength && sequenceLength <= MAX_LENGTH_OFFSET) {
-                overallMaxDepthHead = node;
+            if (sequenceLength > overallMaxSequenceLength && sequenceLength <= Cache.MAX_SEQUENCE_LENGTH - Cache.LENGTH_OFFSET) {
+                overallMaxSequenceNodeHead = node;
                 overallMaxSequenceLength = sequenceLength;
             }
         }
@@ -129,10 +125,10 @@ public class Compressor {
             return null;
         }
 
-        int offset = index - overallMaxDepthHead.getIndex();
+        int offset = index - overallMaxSequenceNodeHead.getIndex();
         int length = overallMaxSequenceLength;
 
-        return new Copy(offset, length);
+        return new Placement(offset, length);
     }
 
     @NotNull
