@@ -13,10 +13,9 @@ public class Compressor {
         cache = new Cache();
     }
 
-    public String getCompressed(@NotNull byte[] data) {
-
+    @NotNull
+    public String getCompressedData(@NotNull byte[] data) {
         StringBuilder binarySB = new StringBuilder();
-
         List<CompressedFormat> compressedFormattedData = getCompressedFormattedData(data);
 
         for (CompressedFormat compressedFormat : compressedFormattedData) {
@@ -24,12 +23,25 @@ public class Compressor {
                 Copy copy = compressedFormat.getCopy();
 
                 String offsetBinary = Integer.toBinaryString(copy.getOffset());
+                if (offsetBinary.length() < 16) {
+                    int paddingLength = 16 - offsetBinary.length();
+                    offsetBinary = getZeroPadding(paddingLength) + offsetBinary;
+                }
+
                 String lengthBinary = Integer.toBinaryString(copy.getLength());
+                if (lengthBinary.length() < 6) {
+                    int paddingLength = 6 - lengthBinary.length();
+                    lengthBinary = getZeroPadding(paddingLength) + lengthBinary;
+                }
 
                 binarySB.append("1").append(offsetBinary).append(lengthBinary);
             } else {
 
                 String charBinary = Integer.toBinaryString(compressedFormat.getCharacter());
+                if (charBinary.length() < 8) {
+                    int paddingLength = 8 - charBinary.length();
+                    charBinary = getZeroPadding(paddingLength) + charBinary;
+                }
                 binarySB.append("0").append(charBinary);
             }
         }
@@ -37,8 +49,18 @@ public class Compressor {
        return binarySB.toString();
     }
 
-    public List<CompressedFormat> getCompressedFormattedData(@NotNull byte[] data) {
-        List<CompressedFormat> compressedBinary = new ArrayList<CompressedFormat>();
+    @NotNull
+    private String getZeroPadding(int paddingLength) {
+        StringBuilder zeroBuilder = new StringBuilder(paddingLength);
+        for (int i = 0; i < paddingLength; i++) {
+            zeroBuilder.append("0");
+        }
+        return zeroBuilder.toString();
+    }
+
+    @NotNull
+    private List<CompressedFormat> getCompressedFormattedData(@NotNull byte[] data) {
+        List<CompressedFormat> compressedFormat = new ArrayList<CompressedFormat>();
 
         int index = 0;
         while(index < data.length) {
@@ -47,12 +69,11 @@ public class Compressor {
             List<Node> existing = cache.getNodes(c);
 
             if (existing.isEmpty()) {
-                compressedBinary.add(new CompressedFormat(c));
+                compressedFormat.add(new CompressedFormat(c));
                 cache.insert(c, index);
                 index++;
 
             } else {
-                //Node maxDepthNode = getMaxDepthMatchingNode(existing, index, data);
                 Copy nodeCopy = getNodeCopy(existing, index, data);
 
                 if (nodeCopy != null && nodeCopy.getLength() > 0) {
@@ -60,18 +81,18 @@ public class Compressor {
                         char cachedChar = (char) data[i];
                         cache.insert(cachedChar, i);
                     }
-                    compressedBinary.add(new CompressedFormat(nodeCopy));
+                    compressedFormat.add(new CompressedFormat(nodeCopy));
                     index = index + nodeCopy.getLength();
                 } else {
-                    compressedBinary.add(new CompressedFormat(c));
+                    compressedFormat.add(new CompressedFormat(c));
                     cache.insert(c, index);
                     index++;
                 }
             }
         }
 
-        //System.out.println(compressedBinary);
-        return compressedBinary;
+        System.out.println("compressed = " + compressedFormat);
+        return compressedFormat;
     }
 
     @Nullable
@@ -97,8 +118,9 @@ public class Compressor {
             return null;
         }
 
-        int offset = index - overallMaxDepthHead.getIndex() - 1;
-        int length = overallMaxDepthMatchingNode.getDepth() - 1;
+        int offset = index - overallMaxDepthHead.getIndex();
+        int length = overallMaxDepthMatchingNode.getDepth();
+
         return new Copy(offset, length);
     }
 
