@@ -35,7 +35,7 @@ public class Decompressor {
     }
 
     @NotNull
-    private String parseBinaryString(String binary) {
+    private String parseBinaryString(@NotNull String binary) {
         StringBuilder sb = new StringBuilder();
         int index = 0;
         int totalLength = binary.length();
@@ -43,24 +43,24 @@ public class Decompressor {
         while (index < totalLength) {
             if (binary.charAt(index) == '0') {
                 int endIndex = index + 9;
-                String binaryChar;
 
-                if (endIndex < totalLength) {
+                String binaryChar;
+                if (endIndex <= totalLength) {
                     binaryChar = binary.substring(index + 1, endIndex);
+
                 } else {
                     binaryChar = binary.substring(index + 1);
                 }
-
                 int parseInt = Integer.parseInt(binaryChar, 2);
                 char c = (char)parseInt;
                 sb.append(c);
                 index = index + 9;
 
-            } else {
+            } else if (binary.charAt(index) == '1') {
                 int endOffsetIndex = index + 17;
                 int endLengthIndex = index + 23;
 
-                if (endOffsetIndex <= totalLength && endLengthIndex <= totalLength) {
+                if (endOffsetIndex <= totalLength && endLengthIndex < totalLength) {
                     String binaryOffset = binary.substring(index + 1, endOffsetIndex);
                     String binaryLength = binary.substring(index + 17, endLengthIndex);
 
@@ -72,12 +72,6 @@ public class Decompressor {
 
                     String characters = sbSoFar.substring(startIndex, startIndex + length);
                     sb.append(characters);
-
-                } else {
-                    String binaryChar = binary.substring(index + 1);
-                    int parseInt = Integer.parseInt(binaryChar, 2);
-                    char c = (char)parseInt;
-                    sb.append(c);
                 }
                 index = index + 23;
             }

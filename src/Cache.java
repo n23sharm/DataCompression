@@ -1,31 +1,28 @@
 import com.sun.istack.internal.NotNull;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 
 public class Cache {
 
-    public static int MAX_OFFSET = 63;
+    public static int MAX_OFFSET = 65535;
 
     @NotNull
-    private List<LinkedList<Node>> cache;
+    private ArrayList<Node> cache;
 
     public Cache() {
-        cache = new ArrayList<LinkedList<Node>>();
+        cache = new ArrayList<Node>();
     }
 
     public void insert(char c, int index) {
-        for (LinkedList<Node> linkedList : cache) {
-            Node n = new Node(c, index, linkedList.size() + 1);
-            linkedList.getLast().addChild(n);
-            linkedList.add(n);
+        if (cache.isEmpty()) {
+            cache.add(new Node(c, index, 1));
+        } else {
+            int lastDepth = cache.get(cache.size() - 1).getDepth();
+            Node nodeToAdd = new Node(c, index, lastDepth + 1);
+            Node lastNode = cache.get(cache.size() - 1);
+            lastNode.addChild(nodeToAdd);
+            cache.add(nodeToAdd);
         }
-
-        LinkedList<Node> listToAdd = new LinkedList<>();
-        Node nodeToAdd = new Node(c, index, 1);
-        listToAdd.add(nodeToAdd);
-        cache.add(listToAdd);
 
         // Clearing cache of elements that are no longer required
         if (cache.size() > MAX_OFFSET) {
@@ -34,13 +31,12 @@ public class Cache {
     }
 
     @NotNull
-    public List<Node> getNodes(char c) {
-        List<Node> existingNodes = new ArrayList<>();
+    public ArrayList<Node> getMatchingNodes(char c) {
+        ArrayList<Node> existingNodes = new ArrayList<>();
 
-        for (LinkedList<Node> linkedList : cache) {
-            Node firstNode = linkedList.getFirst();
-            if (firstNode.getCharacter() == c) {
-                existingNodes.add(firstNode);
+        for (Node n : cache) {
+            if (n.getCharacter() == c) {
+                existingNodes.add(n);
             }
         }
 

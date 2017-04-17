@@ -7,6 +7,7 @@ import java.util.List;
 public class Compressor {
 
     public static int LENGTH_OFFSET = 3;
+    public static int MAX_LENGTH_OFFSET = 63;
 
     @NotNull
     private Cache cache;
@@ -25,6 +26,7 @@ public class Compressor {
                 Copy copy = compressedFormat.getCopy();
 
                 String offsetBinary = Integer.toBinaryString(copy.getOffset());
+
                 if (offsetBinary.length() < 16) {
                     int paddingLength = 16 - offsetBinary.length();
                     offsetBinary = getZeroPadding(paddingLength) + offsetBinary;
@@ -68,7 +70,7 @@ public class Compressor {
         while(index < data.length) {
             char c = (char) data[index];
 
-            List<Node> existing = cache.getNodes(c);
+            List<Node> existing = cache.getMatchingNodes(c);
 
             if (existing.isEmpty()) {
                 compressedFormat.add(new CompressedFormat(c));
@@ -83,6 +85,7 @@ public class Compressor {
                         char cachedChar = (char) data[i];
                         cache.insert(cachedChar, i);
                     }
+
                     compressedFormat.add(new CompressedFormat(nodeCopy));
                     index = index + nodeCopy.getLength();
                 } else {
@@ -102,25 +105,26 @@ public class Compressor {
             return null;
         }
 
-        Node overallMaxDepthMatchingNode = existing.get(0);
+        int overallMaxSequenceLength = 0;
         Node overallMaxDepthHead = existing.get(0);
 
         for (Node node : existing) {
             Node maxDepthMatchingNode = getFurthestMatchingNode(data, index, node);
 
-            if (maxDepthMatchingNode.getDepth() > overallMaxDepthMatchingNode.getDepth()) {
-                overallMaxDepthMatchingNode = maxDepthMatchingNode;
+            int sequenceLength = maxDepthMatchingNode.getDepth() - node.getDepth();
+            if (sequenceLength > overallMaxSequenceLength && sequenceLength <= MAX_LENGTH_OFFSET) {
                 overallMaxDepthHead = node;
+                overallMaxSequenceLength = sequenceLength;
             }
         }
 
         // Only replace seen characters of length 3 or greater
-        if (overallMaxDepthMatchingNode.getDepth() < 3) {
+        if (overallMaxSequenceLength < 3) {
             return null;
         }
 
         int offset = index - overallMaxDepthHead.getIndex();
-        int length = overallMaxDepthMatchingNode.getDepth();
+        int length = overallMaxSequenceLength;
 
         return new Copy(offset, length);
     }
