@@ -1,11 +1,6 @@
 import com.sun.istack.internal.NotNull;
-import com.sun.istack.internal.Nullable;
 
 public class Decompressor {
-
-    public Decompressor() {
-
-    }
 
     @NotNull
     public String getDecompressedData(byte[] data, int totalLength) {
@@ -39,31 +34,53 @@ public class Decompressor {
         return zeroBuilder.toString();
     }
 
+    @NotNull
     private String parseBinaryString(String binary) {
         StringBuilder sb = new StringBuilder();
         int index = 0;
+        int totalLength = binary.length();
 
-        while (index < binary.length()) {
+        while (index < totalLength) {
 
             if (binary.charAt(index) == '0') {
-                String binaryChar = binary.substring(index + 1, index + 9);
+                int endIndex = index + 9;
+                String binaryChar;
+
+                if (endIndex < totalLength) {
+                    binaryChar = binary.substring(index + 1, endIndex);
+                } else {
+                    binaryChar = binary.substring(index + 1);
+                }
+
                 int parseInt = Integer.parseInt(binaryChar, 2);
                 char c = (char)parseInt;
                 sb.append(c);
                 index = index + 9;
 
             } else {
-                String binaryOffset = binary.substring(index + 1, index + 17);
-                String binaryLength = binary.substring(index + 17, index + 23);
+                int endOffsetIndex = index + 17;
+                int endLengthIndex = index + 23;
 
-                int offset = Integer.parseInt(binaryOffset, 2);
-                int length = Integer.parseInt(binaryLength, 2);
+                if (endOffsetIndex <= totalLength && endLengthIndex <= totalLength) {
+                    System.out.print("index = " + index);
+                    String binaryOffset = binary.substring(index + 1, endOffsetIndex);
+                    String binaryLength = binary.substring(index + 17, endLengthIndex);
 
-                String sbSoFar = sb.toString();
+                    int offset = Integer.parseInt(binaryOffset, 2);
+                    int length = Integer.parseInt(binaryLength, 2);
 
-                int startIndex = sb.length() - offset;
-                String characters = sbSoFar.substring(startIndex, startIndex + length);
-                sb.append(characters);
+                    String sbSoFar = sb.toString();
+                    int startIndex = sb.length() - offset;
+
+                    String characters = sbSoFar.substring(startIndex, startIndex + length);
+                    sb.append(characters);
+
+                } else {
+                    String binaryChar = binary.substring(index + 1);
+                    int parseInt = Integer.parseInt(binaryChar, 2);
+                    char c = (char)parseInt;
+                    sb.append(c);
+                }
                 index = index + 23;
             }
         }

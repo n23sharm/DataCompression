@@ -6,6 +6,8 @@ import java.util.List;
 
 public class Compressor {
 
+    private int MAX_OFFSET = 63;
+
     @NotNull
     private Cache cache;
 
@@ -76,7 +78,7 @@ public class Compressor {
             } else {
                 Copy nodeCopy = getNodeCopy(existing, index, data);
 
-                if (nodeCopy != null && nodeCopy.getLength() > 0) {
+                if (nodeCopy != null && nodeCopy.getLength() > 0 && nodeCopy.getOffset() < MAX_OFFSET) {
                     for (int i = index; i < index + nodeCopy.getLength(); ++i) {
                         char cachedChar = (char) data[i];
                         cache.insert(cachedChar, i);
@@ -123,6 +125,7 @@ public class Compressor {
         return new Copy(offset, length);
     }
 
+    @NotNull
     private Node getFurthestMatchingNode(byte[] data, int matchingIndex, Node node) {
         char match = (char) data[matchingIndex];
         Node childNode = node;
