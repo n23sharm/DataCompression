@@ -1,6 +1,9 @@
 import com.sun.istack.internal.NotNull;
 import com.sun.istack.internal.Nullable;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,46 +25,100 @@ public class Compressor {
     @NotNull
     private BinaryUtils binaryUtils;
 
+    private static final boolean DEBUG_PRINT = false;
+
     public Compressor() {
         cache = new Cache();
         binaryUtils = new BinaryUtils();
     }
 
     @NotNull
-    public String getCompressedBinaryRepresentation(@NotNull byte[] data) {
+    public void compress(@NotNull String inputFilename, @NotNull String compressedFilename) {
         StringBuilder binarySB = new StringBuilder();
-        List<CompressedFormat> compressedFormattedData = getCompressedFormattedData(data);
 
-        for (CompressedFormat compressedFormat : compressedFormattedData) {
-            if (compressedFormat.getPlacement() != null)  {
-                Placement placement = compressedFormat.getPlacement();
+        InputStream inputStream = null;
+        FileOutputStream fileOutputStream = null;
+        DataOutputStream dataOutputStream = null;
 
-                String offsetBinary = Integer.toBinaryString(placement.getOffset());
+        try {
+            inputStream = new FileInputStream(inputFilename);
+            fileOutputStream = new FileOutputStream(compressedFilename);
+            dataOutputStream = new DataOutputStream(fileOutputStream);
 
-                if (offsetBinary.length() < 16) {
-                    int paddingLength = 16 - offsetBinary.length();
-                    offsetBinary = binaryUtils.getZeroPadding(paddingLength) + offsetBinary;
+            byte[] data = Files.readAllBytes(Paths.get(inputFilename));
+            if (data == null || data.length <= 0) {
+                return;
+            }
+
+            List<CompressedFormat> compressedFormattedData = getCompressedFormattedData(data);
+
+            for (CompressedFormat compressedFormat : compressedFormattedData) {
+                if (compressedFormat.getPlacement() != null)  {
+                    Placement placement = compressedFormat.getPlacement();
+
+                    String offsetBinary = Integer.toBinaryString(placement.getOffset());
+
+                    if (offsetBinary.length() < 16) {
+                        int paddingLength = 16 - offsetBinary.length();
+                        offsetBinary = binaryUtils.getZeroPadding(paddingLength) + offsetBinary;
+                    }
+
+                    String lengthBinary = Integer.toBinaryString(placement.getLength() - Cache.LENGTH_OFFSET);
+                    if (lengthBinary.length() < 6) {
+                        int paddingLength = 6 - lengthBinary.length();
+                        lengthBinary = binaryUtils.getZeroPadding(paddingLength) + lengthBinary;
+                    }
+
+                    binarySB.append("1").append(offsetBinary).append(lengthBinary);
+                } else {
+
+                    String charBinary = Integer.toBinaryString(compressedFormat.getCharacter());
+                    if (charBinary.length() < 8) {
+                        int paddingLength = 8 - charBinary.length();
+                        charBinary = binaryUtils.getZeroPadding(paddingLength) + charBinary;
+                    }
+                    binarySB.append("0").append(charBinary);
                 }
 
-                String lengthBinary = Integer.toBinaryString(placement.getLength() - Cache.LENGTH_OFFSET);
-                if (lengthBinary.length() < 6) {
-                    int paddingLength = 6 - lengthBinary.length();
-                    lengthBinary = binaryUtils.getZeroPadding(paddingLength) + lengthBinary;
+                if (binarySB.length() > 8) {
+                    dataOutputStream.writeBytes(binarySB.substring(0, 8));
+                    binarySB.delete(0, 8);
                 }
+            }
 
-                binarySB.append("1").append(offsetBinary).append(lengthBinary);
-            } else {
+            if (binarySB.length() > 8) {
+                dataOutputStream.writeBytes(binarySB.substring(0));
+            }
 
-                String charBinary = Integer.toBinaryString(compressedFormat.getCharacter());
-                if (charBinary.length() < 8) {
-                    int paddingLength = 8 - charBinary.length();
-                    charBinary = binaryUtils.getZeroPadding(paddingLength) + charBinary;
+        } catch (Exception e) {
+            if (DEBUG_PRINT) {
+                System.out.println("ERROR FOUND! " + e.toString());
+            }
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
                 }
-                binarySB.append("0").append(charBinary);
+            } catch (IOException e) {
+                // Ignore
+            }
+
+            try {
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+            } catch (IOException e) {
+                // Ignore
+            }
+
+            try {
+                if (fileOutputStream != null) {
+                    fileOutputStream.close();
+                }
+            } catch (IOException e) {
+                // Ignore
             }
         }
-
-       return binarySB.toString();
     }
 
     @NotNull
