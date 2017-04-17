@@ -1,55 +1,54 @@
 import com.sun.istack.internal.NotNull;
 import com.sun.istack.internal.Nullable;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 public class Compressor {
 
     @NotNull
-    private Trie trie;
+    private Cache cache;
 
     public Compressor() {
-        trie = new Trie();
+        cache = new Cache();
     }
 
-    public List<Byte> getCompressed(@NotNull byte[] data) {
-        List<Byte> compressed = new ArrayList<>();
+    public String getCompressed(@NotNull byte[] data) {
+
+        StringBuilder binarySB = new StringBuilder();
+
         List<CompressedFormat> compressedFormattedData = getCompressedFormattedData(data);
 
         for (CompressedFormat compressedFormat : compressedFormattedData) {
             if (compressedFormat.getCopy() != null)  {
                 Copy copy = compressedFormat.getCopy();
 
-                compressed.add(Byte.valueOf("1"));
-                compressed.add((byte) copy.getOffset());
-                compressed.add((byte) copy.getLength());
+                String offsetBinary = Integer.toBinaryString(copy.getOffset());
+                String lengthBinary = Integer.toBinaryString(copy.getLength());
 
+                binarySB.append("1").append(offsetBinary).append(lengthBinary);
             } else {
-                compressed.add(Byte.valueOf("0"));
-                compressed.add((byte) compressedFormat.getCharacter());
+
+                String charBinary = Integer.toBinaryString(compressedFormat.getCharacter());
+                binarySB.append("0").append(charBinary);
             }
         }
 
-        return compressed;
+       return binarySB.toString();
     }
 
     public List<CompressedFormat> getCompressedFormattedData(@NotNull byte[] data) {
-        char[] compressed = new char[data.length];
         List<CompressedFormat> compressedBinary = new ArrayList<CompressedFormat>();
 
         int index = 0;
         while(index < data.length) {
             char c = (char) data[index];
 
-            List<Node> existing = trie.getNodes(c);
+            List<Node> existing = cache.getNodes(c);
 
             if (existing.isEmpty()) {
-                compressed[index] = c;
                 compressedBinary.add(new CompressedFormat(c));
-                trie.insert(c, index);
+                cache.insert(c, index);
                 index++;
 
             } else {
@@ -59,22 +58,19 @@ public class Compressor {
                 if (nodeCopy != null && nodeCopy.getLength() > 0) {
                     for (int i = index; i < index + nodeCopy.getLength(); ++i) {
                         char cachedChar = (char) data[i];
-                        compressed[i] = Character.toUpperCase(cachedChar);
-
-                        trie.insert(cachedChar, i);
+                        cache.insert(cachedChar, i);
                     }
                     compressedBinary.add(new CompressedFormat(nodeCopy));
                     index = index + nodeCopy.getLength();
                 } else {
-                    compressed[index] = c;
                     compressedBinary.add(new CompressedFormat(c));
-                    trie.insert(c, index);
+                    cache.insert(c, index);
                     index++;
                 }
             }
         }
 
-        System.out.println(compressedBinary);
+        //System.out.println(compressedBinary);
         return compressedBinary;
     }
 
@@ -101,7 +97,7 @@ public class Compressor {
             return null;
         }
 
-        int offset = overallMaxDepthHead.getIndex() - index + 1;
+        int offset = index - overallMaxDepthHead.getIndex() - 1;
         int length = overallMaxDepthMatchingNode.getDepth() - 1;
         return new Copy(offset, length);
     }

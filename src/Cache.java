@@ -1,21 +1,20 @@
 import com.sun.istack.internal.NotNull;
-import com.sun.istack.internal.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Trie {
+public class Cache {
 
     @NotNull
-    private List<LinkedList<Node>> trie;
+    private List<LinkedList<Node>> cache;
 
-    public Trie() {
-        trie = new ArrayList<LinkedList<Node>>();
+    public Cache() {
+        cache = new ArrayList<LinkedList<Node>>();
     }
 
     public void insert(char c, int index) {
-        for (LinkedList<Node> linkedList : trie) {
+        for (LinkedList<Node> linkedList : cache) {
             Node n = new Node(c, index, linkedList.size() + 1);
             linkedList.getLast().addChild(n);
             linkedList.add(n);
@@ -24,14 +23,14 @@ public class Trie {
         LinkedList<Node> listToAdd = new LinkedList<>();
         Node nodeToAdd = new Node(c, index, 1);
         listToAdd.add(nodeToAdd);
-        trie.add(listToAdd);
+        cache.add(listToAdd);
     }
 
     @NotNull
     public List<Node> getNodes(char c) {
         List<Node> existingNodes = new ArrayList<>();
 
-        for (LinkedList<Node> linkedList : trie) {
+        for (LinkedList<Node> linkedList : cache) {
             Node firstNode = linkedList.getFirst();
             if (firstNode.getCharacter() == c) {
                 existingNodes.add(firstNode);
@@ -41,9 +40,9 @@ public class Trie {
         return existingNodes;
     }
 
-    public void printTrie() {
+    public void printCache() {
 
-        for (LinkedList<Node> linkedList : trie) {
+        for (LinkedList<Node> linkedList : cache) {
 
             Node node = linkedList.getFirst();
             while (node != null) {

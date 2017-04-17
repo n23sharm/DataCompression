@@ -1,22 +1,13 @@
 import com.sun.istack.internal.Nullable;
 
-import java.io.DataOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 
 public class BinaryFileCompressor {
 
     public static void main(String[] args) {
 
-        /**
-         *  X Read file in binary format
-         *  - Pass through Compressor
-         *  - Pass compressed version through Decompressor
-         */
         BinaryFileCompressor binaryFileCompressor = new BinaryFileCompressor();
         byte[] data = binaryFileCompressor.getFileDataInBinary();
 
@@ -24,14 +15,9 @@ public class BinaryFileCompressor {
             return;
         }
 
-        System.out.print("Data size = " + data.length);
-
         Compressor compressor = new Compressor();
-        List<Byte> compressed = compressor.getCompressed(data);
+        String compressed = compressor.getCompressed(data);
         binaryFileCompressor.outputCompressedBinaryFile(compressed);
-
-        System.out.print("Compressed size = " + compressed.size());
-
     }
 
     @Nullable
@@ -45,15 +31,18 @@ public class BinaryFileCompressor {
         return null;
     }
 
-    private void outputCompressedBinaryFile(List<Byte> compressedData) {
+    private void outputCompressedBinaryFile(String compressedData) {
         DataOutputStream os = null;
         try {
             os = new DataOutputStream(new FileOutputStream("./compressed.bin"));
-            for (Byte data : compressedData) {
-                os.write(data);
+
+            String[] pairs = compressedData.split("(?<=\\G\\d{8})");
+            for (String p : pairs) {
+                int val = Integer.parseInt(p, 2);
+                byte b = (byte) val;
+                os.write(b);
             }
             os.close();
-
         } catch (IOException e) {
             e.printStackTrace();
         }
