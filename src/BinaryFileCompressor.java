@@ -17,7 +17,6 @@ public class BinaryFileCompressor {
             return;
         }
         String compressed = compressor.getCompressedData(dataToCompress);
-        System.out.println("compressed = " + compressed);
         binaryFileCompressor.outputCompressedBinaryFile(compressed);
 
         Decompressor decompressor = new Decompressor();
@@ -48,7 +47,6 @@ public class BinaryFileCompressor {
             for (String s : splits) {
                 int val = Integer.parseInt(s, 2);
                 byte b = (byte) val;
-                System.out.print(" " + b);
                 os.write(b);
             }
             os.close();

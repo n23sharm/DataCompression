@@ -91,7 +91,6 @@ public class Compressor {
             }
         }
 
-        System.out.println("compressed = " + compressedFormat);
         return compressedFormat;
     }
 

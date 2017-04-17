@@ -10,7 +10,6 @@ public class Decompressor {
     @NotNull
     public String getDecompressedData(byte[] data, int totalLength) {
         StringBuilder decompressedBuilder = new StringBuilder();
-        System.out.println();
         for (int i = 0; i < data.length; ++i) {
             String binary = String.format("%8s", Integer.toBinaryString(data[i] & 0xFF)).replace(" ", "");
 
@@ -26,9 +25,6 @@ public class Decompressor {
             }
             decompressedBuilder.append(binary);
         }
-        System.out.println();
-
-        System.out.println("decompress = " + decompressedBuilder.toString());
 
         String parsed = parseBinaryString(decompressedBuilder.toString());
         return parsed;

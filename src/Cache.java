@@ -39,18 +39,4 @@ public class Cache {
 
         return existingNodes;
     }
-
-    public void printCache() {
-
-        for (LinkedList<Node> linkedList : cache) {
-
-            Node node = linkedList.getFirst();
-            while (node != null) {
-                System.out.println(node);
-                node = node.getChild();
-            }
-
-            System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-        }
-    }
 }
