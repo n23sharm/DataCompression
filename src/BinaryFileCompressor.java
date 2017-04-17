@@ -2,7 +2,6 @@ public class BinaryFileCompressor {
 
     public static void main(String[] args) {
 
-        BinaryFileCompressor binaryFileCompressor = new BinaryFileCompressor();
         Compressor compressor = new Compressor();
         Decompressor decompressor = new Decompressor();
 
