@@ -6,6 +6,8 @@ import java.util.List;
 
 public class Cache {
 
+    public static int MAX_OFFSET = 63;
+
     @NotNull
     private List<LinkedList<Node>> cache;
 
@@ -24,6 +26,11 @@ public class Cache {
         Node nodeToAdd = new Node(c, index, 1);
         listToAdd.add(nodeToAdd);
         cache.add(listToAdd);
+
+        // Clearing cache of elements that are no longer required
+        if (cache.size() > MAX_OFFSET) {
+            cache.remove(0);
+        }
     }
 
     @NotNull
