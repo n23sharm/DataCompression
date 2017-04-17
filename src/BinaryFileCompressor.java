@@ -62,7 +62,7 @@ public class BinaryFileCompressor {
         if (dataToCompress == null || dataToCompress.length <= 0) {
             return 0;
         }
-        String compressedBinary = compressor.getCompressedData(dataToCompress);
+        String compressedBinary = compressor.getCompressedBinaryRepresentation(dataToCompress);
         outputCompressedBinaryFile(compressedBinary, compressedFilename);
         return compressedBinary.length();
     }

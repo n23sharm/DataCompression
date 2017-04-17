@@ -28,7 +28,7 @@ public class Compressor {
     }
 
     @NotNull
-    public String getCompressedData(@NotNull byte[] data) {
+    public String getCompressedBinaryRepresentation(@NotNull byte[] data) {
         StringBuilder binarySB = new StringBuilder();
         List<CompressedFormat> compressedFormattedData = getCompressedFormattedData(data);
 
