@@ -49,4 +49,8 @@ public class Cache {
 
         return existingNodes;
     }
+
+    public void clearCache() {
+        cache.clear();
+    }
 }

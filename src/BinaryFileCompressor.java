@@ -16,7 +16,7 @@ public class BinaryFileCompressor {
         System.out.println();
 
         System.out.println("~~~~~~~~~~~~~ Compressing Input 2 ~~~~~~~~~~~~~~");
-        String inputFile2 = "input2.bin";
+        String inputFile2 = "./input2.bin";
         String compressedFile2 = "./compressed2.bin";
         String decompressedFile2 = "./decompressed2.bin";
         compressor.compress(inputFile2, compressedFile2);
@@ -26,7 +26,7 @@ public class BinaryFileCompressor {
         System.out.println();
 
         System.out.println("~~~~~~~~~~~~~ Compressing Input 3 ~~~~~~~~~~~~~~");
-        String inputFile3 = "input3.bin";
+        String inputFile3 = "./input3.bin";
         String compressedFile3 = "./compressed3.bin";
         String decompressedFile3 = "./decompressed3.bin";
         compressor.compress(inputFile3, compressedFile3);
@@ -36,7 +36,7 @@ public class BinaryFileCompressor {
         System.out.println();
 
         System.out.println("~~~~~~~~~~~~~ Compressing Input 4 ~~~~~~~~~~~~~~");
-        String inputFile4 = "input4.bin";
+        String inputFile4 = "./input4.bin";
         String compressedFile4 = "./compressed4.bin";
         String decompressedFile4 = "./decompressed4.bin";
         compressor.compress(inputFile4, compressedFile4);

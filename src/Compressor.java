@@ -127,6 +127,8 @@ public class Compressor {
             } catch (IOException e) {
                 // Ignore
             }
+
+            cache.clearCache();
         }
     }
 
