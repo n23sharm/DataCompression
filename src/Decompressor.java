@@ -1,83 +1,162 @@
 import com.sun.istack.internal.NotNull;
 
-/**
- * Decompressor for files encoded with the compression from {@link Compressor}
- */
+import java.io.*;
+
 public class Decompressor {
-
-    @NotNull
-    private BinaryUtils binaryUtils;
-
-    public Decompressor() {
-        binaryUtils = new BinaryUtils();
+    private enum ReadState {
+        PENDING,
+        READING_CHAR,
+        READING_COMPRESSED
     }
 
-    @NotNull
-    public String getDecompressedData(@NotNull byte[] data, int totalLength) {
-        StringBuilder decompressedBuilder = new StringBuilder();
-        for (int i = 0; i < data.length; ++i) {
-            String binary = String.format("%8s", Integer.toBinaryString(data[i] & 0xFF)).replace(" ", "");
+    private static final int LOOKBACK_BUFFER_SIZE = 65536;
+    private static final int READ_BUFFER_SIZE = 4096;
 
-            // For the last number, ensure the total length matches compressed length
-            if (i == data.length - 1) {
-                int remainingLength = totalLength - decompressedBuilder.length();
-                if (remainingLength > binary.length()) {
-                    binary = binaryUtils.getZeroPadding(remainingLength - binary.length()) + binary;
+    // Masks that give us only the last i bits of data where i is the index in
+    // the array. Basically 2^i - 1 precomputed to save time.
+    private static final int[] READ_MASKS = new int[] {0, 1, 3, 7, 15, 31, 63, 127, 255};
+
+    private static final boolean DEBUG_PRINT = false;
+
+    public void decompress(@NotNull String compressedFilename, @NotNull String decompressedFilename) {
+        StringBuilder lookbackBuffer = new StringBuilder();
+
+        InputStream inputStream = null;
+        FileOutputStream fileOutputStream = null;
+        DataOutputStream dataOutputStream = null;
+
+        try {
+            byte[] buffer = new byte[READ_BUFFER_SIZE];
+            inputStream = new FileInputStream(compressedFilename);
+            fileOutputStream = new FileOutputStream(decompressedFilename);
+            dataOutputStream = new DataOutputStream(fileOutputStream);
+
+            int currentlyReadingData = 0;
+            int availableInCurrentByte = 8;
+            int needToRead = 1;
+            ReadState readState = ReadState.PENDING;
+            int read = 0;
+
+            while ((read = inputStream.read(buffer)) != -1) {
+                int bytesProcessed = 0;
+
+                while (bytesProcessed < read) {
+                    if (readState == ReadState.PENDING) {
+                        // Read the next chunk of data and figure out if it's a char
+                        // or a compressed chunk
+                        int nextBit = (buffer[bytesProcessed] >> (availableInCurrentByte - 1)) & 1;
+
+                        if (nextBit == 0) {
+                            readState = ReadState.READING_CHAR;
+                            needToRead = 8;
+                        } else {
+                            readState = ReadState.READING_COMPRESSED;
+                            needToRead = 22;
+                        }
+
+                        availableInCurrentByte -= 1;
+                        currentlyReadingData = nextBit;
+                    } else {
+                        int canRead = Math.min(needToRead, availableInCurrentByte);
+
+                        int newlyReadData = buffer[bytesProcessed];
+
+                        // Trim any trailing bits from the byte that aren't needed for this read
+                        newlyReadData = newlyReadData >> (availableInCurrentByte - canRead);
+
+                        // Trim any leading bits from the byte that aren't needed for this read
+                        newlyReadData = newlyReadData & READ_MASKS[canRead];
+
+                        // Add the read chunk to the end of the currently read data
+                        currentlyReadingData = (currentlyReadingData << canRead) | newlyReadData;
+
+                        availableInCurrentByte -= canRead;
+                        if (availableInCurrentByte == 0) {
+                            // Move onto the next byte
+                            bytesProcessed += 1;
+                            availableInCurrentByte = 8;
+                        }
+
+                        needToRead -= canRead;
+                        if (needToRead == 0) {
+                            if (DEBUG_PRINT) {
+                                System.out.println("ABOUT TO PROCESS: " + Integer.toBinaryString(currentlyReadingData));
+                            }
+
+                            if (readState == ReadState.READING_CHAR) {
+                                // Read the last 8 bits and that is a char
+                                char readCharacter = (char)(currentlyReadingData & 0b11111111);
+
+                                if (DEBUG_PRINT) {
+                                    System.out.println("READ CHARACTER: " + readCharacter);
+                                }
+
+                                dataOutputStream.writeByte(readCharacter);
+
+                                lookbackBuffer.append(readCharacter);
+                                if (lookbackBuffer.length() > LOOKBACK_BUFFER_SIZE) {
+                                    lookbackBuffer.delete(0, lookbackBuffer.length() - LOOKBACK_BUFFER_SIZE);
+                                }
+                            } else if (readState == ReadState.READING_COMPRESSED) {
+                                int length = currentlyReadingData & 0b111111;
+                                length += 3;
+
+                                int offset = (currentlyReadingData >> 6) & 0b1111111111111111;
+
+                                if (DEBUG_PRINT) {
+                                    System.out.println("READ COMPRESSED. OFFSET: " + offset + " - LENGTH: " + length);
+                                }
+
+                                int lookbackStartIndex = lookbackBuffer.length() - offset;
+                                String lookbackData = lookbackBuffer.substring(lookbackStartIndex, lookbackStartIndex + length);
+
+                                if (DEBUG_PRINT) {
+                                    System.out.println("READ COMPRESSED. DATA: " + lookbackData);
+                                }
+
+                                dataOutputStream.writeBytes(lookbackData);
+
+                                lookbackBuffer.append(lookbackData);
+                                if (lookbackBuffer.length() > LOOKBACK_BUFFER_SIZE) {
+                                    lookbackBuffer.delete(0, lookbackBuffer.length() - LOOKBACK_BUFFER_SIZE);
+                                }
+                            }
+
+                            currentlyReadingData = 0;
+                            needToRead = 1;
+                            readState = ReadState.PENDING;
+                        }
+                    }
                 }
-            } else if (binary.length() < 8) {
-                // Pad all binary numbers with 0 to ensure a length of size 8,
-                binary = binaryUtils.getZeroPadding(8 - binary.length()) + binary;
             }
-            decompressedBuilder.append(binary);
-        }
-
-        String parsed = parseBinaryString(decompressedBuilder.toString());
-        return parsed;
-    }
-
-    @NotNull
-    private String parseBinaryString(@NotNull String binary) {
-        StringBuilder sb = new StringBuilder();
-        int index = 0;
-        int totalLength = binary.length();
-
-        while (index < totalLength) {
-            if (binary.charAt(index) == '0') {
-                int endIndex = index + 9;
-
-                String binaryChar;
-                if (endIndex <= totalLength) {
-                    binaryChar = binary.substring(index + 1, endIndex);
-
-                } else {
-                    binaryChar = binary.substring(index + 1);
+        } catch (Exception e) {
+            if (DEBUG_PRINT) {
+                System.out.println("ERROR FOUND! " + e.toString());
+            }
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
                 }
-                int parseInt = Integer.parseInt(binaryChar, 2);
-                char c = (char)parseInt;
-                sb.append(c);
-                index = index + 9;
+            } catch (IOException e) {
+                // Ignore
+            }
 
-            } else if (binary.charAt(index) == '1') {
-                int endOffsetIndex = index + 17;
-                int endLengthIndex = index + 23;
-
-                if (endOffsetIndex <= totalLength && endLengthIndex < totalLength) {
-                    String binaryOffset = binary.substring(index + 1, endOffsetIndex);
-                    String binaryLength = binary.substring(index + 17, endLengthIndex);
-
-                    int offset = Integer.parseInt(binaryOffset, 2);
-                    int length = Integer.parseInt(binaryLength, 2) + Cache.LENGTH_OFFSET;
-
-                    String sbSoFar = sb.toString();
-                    int startIndex = sb.length() - offset;
-
-                    String characters = sbSoFar.substring(startIndex, startIndex + length);
-                    sb.append(characters);
+            try {
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
                 }
-                index = index + 23;
+            } catch (IOException e) {
+                // Ignore
+            }
+
+            try {
+                if (fileOutputStream != null) {
+                    fileOutputStream.close();
+                }
+            } catch (IOException e) {
+                // Ignore
             }
         }
-
-        return sb.toString();
     }
 }
