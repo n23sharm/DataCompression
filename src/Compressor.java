@@ -80,14 +80,23 @@ public class Compressor {
                     binarySB.append("0").append(charBinary);
                 }
 
-                if (binarySB.length() > 8) {
-                    dataOutputStream.writeBytes(binarySB.substring(0, 8));
+                while (binarySB.length() >= 8) {
+                    int val = Integer.parseInt(binarySB.substring(0, 8), 2);
+                    byte b = (byte) val;
+                    dataOutputStream.writeByte(b);
                     binarySB.delete(0, 8);
                 }
+
             }
 
-            if (binarySB.length() > 8) {
-                dataOutputStream.writeBytes(binarySB.substring(0));
+            if (binarySB.length() > 0) {
+                String s = binarySB.substring(0);
+                if (binarySB.length() < 8) {
+                    s = String.format("%-8s", s).replace(' ', '0');
+                }
+                int val = Integer.parseInt(s, 2);
+                byte b = (byte) val;
+                dataOutputStream.writeByte(b);
             }
 
         } catch (Exception e) {
