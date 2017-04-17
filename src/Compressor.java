@@ -6,6 +6,8 @@ import java.util.List;
 
 public class Compressor {
 
+    public static int LENGTH_OFFSET = 3;
+
     @NotNull
     private Cache cache;
 
@@ -28,7 +30,7 @@ public class Compressor {
                     offsetBinary = getZeroPadding(paddingLength) + offsetBinary;
                 }
 
-                String lengthBinary = Integer.toBinaryString(copy.getLength());
+                String lengthBinary = Integer.toBinaryString(copy.getLength() - LENGTH_OFFSET);
                 if (lengthBinary.length() < 6) {
                     int paddingLength = 6 - lengthBinary.length();
                     lengthBinary = getZeroPadding(paddingLength) + lengthBinary;

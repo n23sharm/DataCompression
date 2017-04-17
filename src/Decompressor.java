@@ -41,7 +41,6 @@ public class Decompressor {
         int totalLength = binary.length();
 
         while (index < totalLength) {
-
             if (binary.charAt(index) == '0') {
                 int endIndex = index + 9;
                 String binaryChar;
@@ -66,7 +65,7 @@ public class Decompressor {
                     String binaryLength = binary.substring(index + 17, endLengthIndex);
 
                     int offset = Integer.parseInt(binaryOffset, 2);
-                    int length = Integer.parseInt(binaryLength, 2);
+                    int length = Integer.parseInt(binaryLength, 2) + Compressor.LENGTH_OFFSET;
 
                     String sbSoFar = sb.toString();
                     int startIndex = sb.length() - offset;
