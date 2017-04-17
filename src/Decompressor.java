@@ -62,7 +62,6 @@ public class Decompressor {
                 int endLengthIndex = index + 23;
 
                 if (endOffsetIndex <= totalLength && endLengthIndex <= totalLength) {
-                    System.out.print("index = " + index);
                     String binaryOffset = binary.substring(index + 1, endOffsetIndex);
                     String binaryLength = binary.substring(index + 17, endLengthIndex);
 
