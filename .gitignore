@@ -2,4 +2,11 @@
 vcs.xml
 workspace.xml
 encodings.xml
-*.bin
+compressed1.bin
+compressed2.bin
+compressed3.bin
+compressed4.bin
+decompressed1.bin
+decompressed2.bin
+decompressed3.bin
+decompressed4.bin
